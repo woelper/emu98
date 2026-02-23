@@ -195,6 +195,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "current_platform"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a74858bcfe44b22016cb49337d7b6f04618c58e5dbfdef61b06b8c434324a0bc"
+
+[[package]]
 name = "deflate64"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -225,6 +231,7 @@ name = "emu98"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "current_platform",
  "env_logger",
  "log",
  "minreq",
