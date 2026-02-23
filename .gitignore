@@ -2,3 +2,6 @@
 /roms
 *.zip
 *.AppImage
+*.dll
+*.bin
+*.exe

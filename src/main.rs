@@ -7,13 +7,11 @@ use std::path::Path;
 use zip::ZipArchive;
 static ROMS_URL: &str = "https://github.com/86Box/roms/archive/refs/tags/v5.3.zip";
 
-fn get_86box_url() -> String {
-    "https://ci.86box.net/job/86Box/8436/artifact/New%20Recompiler%20(beta)/Linux%20-%20x64%20(64-bit)/86Box-NDR-Linux-x86_64-b8436.AppImage".into()
-}
-
 struct EmulatorBinary {
-    /// Final artifact name
-    filename: String,
+    /// Local artifact name
+    source_file: String,
+    /// Local executable name
+    executable: String,
     /// URL to download the artifact from
     url: String,
     is_zip_archive: bool,
@@ -22,13 +20,34 @@ struct EmulatorBinary {
 impl EmulatorBinary {
     fn new() -> Self {
         match current_platform::CURRENT_PLATFORM {
+        // match "x86_64-pc-windows-msvc" {
             "x86_64-unknown-linux-gnu" => EmulatorBinary {
-                filename: "86box.bin".into(),
+                source_file: "86box.bin".into(),
+                executable: "86box.bin".into(),
                 url: "https://ci.86box.net/job/86Box/8453/artifact/New%20Recompiler%20(beta)/Linux%20-%20x64%20(64-bit)/86Box-NDR-Linux-x86_64-b8453.AppImage".into(),
                 is_zip_archive: false
             },
+            "x86_64-pc-windows-msvc" => EmulatorBinary {
+                source_file: "86box.zip".into(),
+                executable: "86Box.exe".into(),
+                url: "https://ci.86box.net/job/86Box/8453/artifact/New%20Recompiler%20(beta)/Windows%20-%20x64%20(64-bit)/86Box-NDR-Windows-64-b8453.zip".into(),
+                is_zip_archive: true
+            },
             _ => panic!("Unsupported platform"),
         }
+    }
+
+    fn obtain(&self) -> Result<()> {
+        info!("Downloading emulator");
+        dl(&self.url, Path::new(&self.source_file))?;
+        if self.is_zip_archive {
+            info!("Extracting emulator");
+            let file = File::open(&self.source_file)?;
+            let mut archive = ZipArchive::new(file)?;
+            archive.extract(".")?;
+            std::fs::remove_file(&self.source_file)?;
+        }
+        Ok(())
     }
 }
 
@@ -49,8 +68,7 @@ fn main() -> Result<()> {
         .filter_level(log::LevelFilter::Info)
         .init();
     let emulator = EmulatorBinary::new();
-    info!("Downloading emulator");
-    dl(&emulator.url, Path::new(&emulator.filename))?;
+    emulator.obtain()?;
     info!("Downloading ROMs");
     dl(ROMS_URL, Path::new("roms.zip"))?;
     info!("Extracting ROMs");
@@ -61,6 +79,6 @@ fn main() -> Result<()> {
     std::fs::remove_dir_all("roms")?;
     std::fs::rename("roms-5.3", "roms")?;
     std::fs::remove_file("roms.zip")?;
-    info!("You can now run {}", emulator.filename);
+    info!("You can now run {}", emulator.executable);
     Ok(())
 }
