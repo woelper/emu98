@@ -1,0 +1,12 @@
+[package]
+name = "emu98"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.101"
+env_logger = "0.11.9"
+log = "0.4.29"
+minreq = { version = "2.14.1", features = ["https"] }
+ureq = { version = "3.2.0", features = ["rustls"] }
+zip = "8.1.0"
