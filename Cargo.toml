@@ -4,10 +4,12 @@ version = "0.3.1"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.101"
-current_platform = "0.2.0"
-env_logger = "0.11.9"
-log = "0.4.29"
-minreq = { version = "2.14.1", features = ["https"] }
+anyhow = "1"
+env_logger = "0.11"
+log = "0.4"
 ureq = { version = "3.2.0", features = ["rustls"] }
 zip = "8.1.0"
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+lto = true
