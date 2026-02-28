@@ -6,6 +6,7 @@ use std::io::copy;
 use std::path::Path;
 use zip::ZipArchive;
 static ROMS_URL: &str = "https://github.com/86Box/roms/archive/refs/tags/v5.3.zip";
+static VMS_URL: &str = "https://huggingface.co/datasets/johnsor/win98/resolve/main/win98_image.zip";
 
 struct EmulatorBinary {
     /// Local artifact name
@@ -42,17 +43,22 @@ impl EmulatorBinary {
         dl(&self.url, Path::new(&self.source_file))?;
         if self.is_zip_archive {
             info!("Extracting emulator");
-            let file = File::open(&self.source_file)?;
-            let mut archive = ZipArchive::new(file)?;
-            archive.extract(".")?;
+            extract(&self.source_file, ".")?;
             std::fs::remove_file(&self.source_file)?;
         }
         Ok(())
     }
 }
 
+fn extract<P: AsRef<Path>, Q: AsRef<Path>>(zip_path: P, dest_dir: Q) -> Result<()> {
+    let file = File::open(zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
+    archive.extract(dest_dir)?;
+    Ok(())
+}
+
 /// Helper to download a file from a URL to a path
-fn dl(url: &str, out: &Path) -> Result<()> {
+fn dl<P: AsRef<Path>>(url: &str, out: P) -> Result<()> {
     let response = ureq::get(url).call()?;
     if response.status() == 200 {
         let mut file = File::create(out)?;
@@ -63,22 +69,28 @@ fn dl(url: &str, out: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Helper to download a file from a URL and extract to a path
+fn dl_extract<P: AsRef<Path>>(url: &str, out: P) -> Result<()> {
+    info!("Downloading {url}");
+    dl(url, "tmp.zip")?;
+    info!("Extracting");
+    extract("tmp.zip", out)?;
+    std::fs::remove_file("tmp.zip")?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     env_logger::Builder::from_default_env()
         .filter_level(log::LevelFilter::Info)
         .init();
     let emulator = EmulatorBinary::new();
     emulator.obtain()?;
-    info!("Downloading ROMs");
-    dl(ROMS_URL, Path::new("roms.zip"))?;
-    info!("Extracting ROMs");
-    let file = File::open("roms.zip")?;
-    let mut archive = ZipArchive::new(file)?;
-    archive.extract(".")?;
+    dl_extract(ROMS_URL, ".")?;
     info!("Removing old roms directory");
     std::fs::remove_dir_all("roms")?;
     std::fs::rename("roms-5.3", "roms")?;
-    std::fs::remove_file("roms.zip")?;
-    info!("You can now run {}", emulator.executable);
+    info!("Downloading VM");
+    dl_extract(VMS_URL, ".")?;
+    info!("You can now run ./{} vms/86box.cfg", emulator.executable);
     Ok(())
 }
