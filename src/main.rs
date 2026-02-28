@@ -20,20 +20,26 @@ struct EmulatorBinary {
 
 impl EmulatorBinary {
     fn new() -> Self {
-        match current_platform::CURRENT_PLATFORM {
+        match std::env::consts::OS {
         // match "x86_64-pc-windows-msvc" {
-            "x86_64-unknown-linux-gnu" => EmulatorBinary {
+            "linux" => EmulatorBinary {
                 source_file: "86box.bin".into(),
                 executable: "86box.bin".into(),
                 url: "https://ci.86box.net/job/86Box/8453/artifact/New%20Recompiler%20(beta)/Linux%20-%20x64%20(64-bit)/86Box-NDR-Linux-x86_64-b8453.AppImage".into(),
                 is_zip_archive: false
             },
-            "x86_64-pc-windows-msvc" => EmulatorBinary {
+            "windows" => EmulatorBinary {
                 source_file: "86box.zip".into(),
                 executable: "86Box.exe".into(),
                 url: "https://ci.86box.net/job/86Box/8453/artifact/New%20Recompiler%20(beta)/Windows%20-%20x64%20(64-bit)/86Box-NDR-Windows-64-b8453.zip".into(),
                 is_zip_archive: true
             },
+            // "macos" => EmulatorBinary {
+            //     source_file: "86box.zip".into(),
+            //     executable: "86Box.exe".into(),
+            //     url: "https://ci.86box.net/job/86Box/8453/artifact/New%20Recompiler%20(beta)/Windows%20-%20x64%20(64-bit)/86Box-NDR-Windows-64-b8453.zip".into(),
+            //     is_zip_archive: true
+            // },
             _ => panic!("Unsupported platform"),
         }
     }
