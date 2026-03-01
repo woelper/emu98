@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1"
 env_logger = "0.11"
+fastrand = "2.3.0"
 log = "0.4"
 ureq = { version = "3.2.0", features = ["rustls"] }
 zip = "8.1.0"

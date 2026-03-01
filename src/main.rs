@@ -1,6 +1,6 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use env_logger;
-use log::{self, debug, info};
+use log::{self, debug, error, info};
 use std::fs::File;
 use std::io::copy;
 use std::path::Path;
@@ -57,6 +57,7 @@ impl EmulatorBinary {
 }
 
 fn extract<P: AsRef<Path>, Q: AsRef<Path>>(zip_path: P, dest_dir: Q) -> Result<()> {
+    debug!("Extract: Open {}", zip_path.as_ref().display());
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
     archive.extract(dest_dir)?;
@@ -67,10 +68,20 @@ fn extract<P: AsRef<Path>, Q: AsRef<Path>>(zip_path: P, dest_dir: Q) -> Result<(
 fn dl<P: AsRef<Path>>(url: &str, out: P) -> Result<()> {
     let response = ureq::get(url).call()?;
     if response.status() == 200 {
-        let mut file = File::create(out)?;
+        debug!(
+            "Creating {} to receive downloaded data",
+            out.as_ref().display()
+        );
+        let mut file = File::create(&out)?;
         let mut reader = response.into_body().into_reader();
         let bytes_written = copy(&mut reader, &mut file)?;
-        debug!("Saved {} bytes.", bytes_written);
+        debug!(
+            "Saved {} bytes to {}",
+            bytes_written,
+            out.as_ref().display()
+        );
+    } else {
+        error!("Failed to download {:?} {}", response.body(), url);
     }
     Ok(())
 }
@@ -78,22 +89,26 @@ fn dl<P: AsRef<Path>>(url: &str, out: P) -> Result<()> {
 /// Helper to download a file from a URL and extract to a path
 fn dl_extract<P: AsRef<Path>>(url: &str, out: P) -> Result<()> {
     info!("Downloading {url}");
-    dl(url, "tmp.zip")?;
-    info!("Extracting");
-    extract("tmp.zip", out)?;
-    std::fs::remove_file("tmp.zip")?;
+    let temp_name = format!("{}.zip", fastrand::u16(4444..20000));
+    dl(url, &temp_name)?;
+    extract(&temp_name, out)?;
+    std::fs::remove_file(temp_name).context("Can't remove temp file")?;
     Ok(())
 }
 
 fn main() -> Result<()> {
     env_logger::Builder::from_default_env()
-        .filter_level(log::LevelFilter::Info)
+        .filter_level(log::LevelFilter::Debug)
         .init();
     let emulator = EmulatorBinary::new();
     emulator.obtain()?;
+    info!("Getting ROMs");
     dl_extract(ROMS_URL, ".")?;
-    info!("Removing old roms directory");
-    std::fs::remove_dir_all("roms")?;
+    if Path::new("roms").is_dir() {
+        info!("Removing old roms directory");
+        std::fs::remove_dir_all("roms")?;
+    }
+    info!("Renaming roms directory");
     std::fs::rename("roms-5.3", "roms")?;
     info!("Downloading VM");
     dl_extract(VMS_URL, ".")?;
